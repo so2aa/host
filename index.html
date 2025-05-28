@@ -186,6 +186,296 @@
         </div>
       </div>
 
+      <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Snake English Quiz Game</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(to bottom right, #000000, #1a1a1a);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    canvas {
+      border: 3px solid #00ff00;
+      box-shadow: 0 0 20px #00ff00;
+      background: #111;
+      outline: none;
+    }
+
+    #question {
+      font-size: 1.8em;
+      margin-bottom: 15px;
+      color: #00ffcc;
+      text-shadow: 1px 1px 3px #000;
+      min-height: 56px;
+      text-align: center;
+      max-width: 700px;
+    }
+
+    #scoreboard {
+      margin-top: 10px;
+      font-size: 1.4em;
+      color: #0f0;
+      text-shadow: 0 0 5px #0f0;
+      min-height: 36px;
+      text-align: center;
+    }
+
+    #restartBtn {
+      margin-top: 25px;
+      padding: 12px 28px;
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #00ff00;
+      background-color: #111;
+      border: 2px solid #00ff00;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s, color 0.3s;
+      user-select: none;
+    }
+
+    #restartBtn:hover {
+      background-color: #00ff00;
+      color: #111;
+    }
+  </style>
+</head>
+<body>
+  <div id="question"></div>
+  <canvas id="game" width="800" height="600" tabindex="0"></canvas>
+  <div id="scoreboard"></div>
+  <button id="restartBtn">Restart Game</button>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const context = canvas.getContext("2d");
+    const questionBox = document.getElementById("question");
+    const scoreboard = document.getElementById("scoreboard");
+    const restartBtn = document.getElementById("restartBtn");
+
+    const questions = [
+      { q: "What is the past tense of 'go'?", options: ["goed", "went", "goes"], answer: "went" },
+      { q: "Choose the correct article: '___ apple'", options: ["a", "an", "the"], answer: "an" },
+      { q: "Which one is a verb?", options: ["run", "happy", "red"], answer: "run" },
+      { q: "Select the correct plural form of 'child'", options: ["childs", "children", "childes"], answer: "children" },
+      { q: "Choose the synonym of 'quick'", options: ["slow", "fast", "tall"], answer: "fast" },
+      { q: "Which sentence is correct?", options: ["He don't like it", "He doesn't like it", "He isn't like it"], answer: "He doesn't like it" },
+      { q: "Identify the adjective in: 'The bright sun'", options: ["sun", "bright", "The"], answer: "bright" },
+      { q: "Fill in the blank: 'She ___ to the gym every day.'", options: ["go", "goes", "going"], answer: "goes" },
+      { q: "Choose the correct form: 'If I ___ rich, I would travel.'", options: ["am", "were", "is"], answer: "were" },
+      { q: "Which word is an adverb?", options: ["quick", "quickly", "quiet"], answer: "quickly" },
+      { q: "Pick the correct sentence:", options: ["She can sings well", "She can sing well", "She can singing well"], answer: "She can sing well" },
+      { q: "Choose the correct preposition: 'He is good ___ math.'", options: ["at", "in", "on"], answer: "at" }
+    ];
+
+    const inspiringQuotes = [
+      "Keep pushing forward, success is just around the corner!",
+      "Learning never exhausts the mind. – Leonardo da Vinci",
+      "Every day is a chance to get better.",
+      "The expert in anything was once a beginner.",
+      "Knowledge is power. Use it wisely!"
+    ];
+
+    const grid = 40;  // We'll still use this for movement grid
+
+    let currentQuestion = 0;
+    let score = 0;
+    let speed = 10; // initial snake speed (frames per movement)
+    let count = 0;
+    let gameOver = false;
+
+    const snake = {
+      x: 160,
+      y: 160,
+      dx: grid,
+      dy: 0,
+      cells: [],
+      maxCells: 4
+    };
+
+    let answers = [];
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    function spawnAnswers() {
+      if (currentQuestion >= questions.length) {
+        gameOver = true;
+        showResults();
+        return;
+      }
+
+      const q = questions[currentQuestion];
+      questionBox.textContent = q.q;
+      scoreboard.textContent = `Score: ${score} / ${questions.length}`;
+
+      answers = q.options.map(option => {
+        return {
+          x: getRandomInt(0, canvas.width / grid) * grid,
+          y: getRandomInt(0, canvas.height / grid) * grid,
+          text: option
+        };
+      });
+    }
+
+    function showResults() {
+      questionBox.textContent = "Quiz Completed!";
+      scoreboard.textContent = `Your final score is ${score} / ${questions.length}`;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      context.fillStyle = "white";
+      context.font = "bold 36px Arial";
+      context.textAlign = "center";
+      context.fillText("Thanks for playing!", canvas.width / 2, canvas.height / 2 - 70);
+
+      const quote = inspiringQuotes[getRandomInt(0, inspiringQuotes.length)];
+      context.font = "italic 24px Arial";
+      context.fillText(`"${quote}"`, canvas.width / 2, canvas.height / 2 - 20);
+
+      context.font = "18px Arial";
+      context.fillText("Click Restart to play again.", canvas.width / 2, canvas.height / 2 + 40);
+    }
+
+    function checkAnswer(selected) {
+      if (gameOver) return;
+      const correct = questions[currentQuestion].answer;
+      if (selected === correct) {
+        score++;
+        snake.maxCells++;
+        // increase speed by reducing frame delay but cap minimum delay
+        speed = Math.max(4, speed - 1);
+      }
+      currentQuestion++;
+      spawnAnswers();
+    }
+
+    function resetGame() {
+      currentQuestion = 0;
+      score = 0;
+      speed = 10;
+      snake.x = 160;
+      snake.y = 160;
+      snake.dx = grid;
+      snake.dy = 0;
+      snake.cells = [];
+      snake.maxCells = 4;
+      gameOver = false;
+      spawnAnswers();
+      canvas.focus();
+      requestAnimationFrame(loop);
+    }
+
+    spawnAnswers();
+
+    function loop() {
+      if (gameOver) return;
+
+      requestAnimationFrame(loop);
+
+      if (++count < speed) return;
+      count = 0;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      context.shadowColor = '#00ffcc';
+      context.shadowBlur = 10;
+
+      snake.x += snake.dx;
+      snake.y += snake.dy;
+
+      if (snake.x < 0) snake.x = canvas.width - grid;
+      else if (snake.x >= canvas.width) snake.x = 0;
+      if (snake.y < 0) snake.y = canvas.height - grid;
+      else if (snake.y >= canvas.height) snake.y = 0;
+
+      snake.cells.unshift({ x: snake.x, y: snake.y });
+      if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+      // Draw snake
+      context.fillStyle = "#00ff00";
+      snake.cells.forEach((cell, index) => {
+        context.fillRect(cell.x, cell.y, grid - 2, grid - 2);
+
+        // Check collision with answers
+        answers.forEach(answer => {
+          if (cell.x === answer.x && cell.y === answer.y) {
+            checkAnswer(answer.text);
+          }
+        });
+
+        // Check self collision to reset game
+        for (let i = index + 1; i < snake.cells.length; i++) {
+          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+            resetGame();
+          }
+        }
+      });
+
+      // Draw answers with larger circles and bigger text
+      const circleRadius = 30; // 60px diameter
+      context.shadowColor = 'gold';
+      context.shadowBlur = 20;
+      context.font = "bold 18px Arial";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+
+      answers.forEach(answer => {
+        context.fillStyle = '#222';
+        context.beginPath();
+        context.arc(answer.x + grid/2, answer.y + grid/2, circleRadius, 0, Math.PI * 2);
+        context.fill();
+        context.lineWidth = 3;
+        context.strokeStyle = '#00ffcc';
+        context.stroke();
+
+        context.fillStyle = '#00ffcc';
+        context.fillText(answer.text, answer.x + grid/2, answer.y + grid/2);
+      });
+    }
+
+    // Start the animation loop
+    requestAnimationFrame(loop);
+
+    // Control snake direction with arrow keys
+    window.addEventListener("keydown", e => {
+      if (gameOver) return;
+
+      if (e.key === "ArrowLeft" && snake.dx === 0) {
+        snake.dx = -grid;
+        snake.dy = 0;
+      } else if (e.key === "ArrowUp" && snake.dy === 0) {
+        snake.dx = 0;
+        snake.dy = -grid;
+      } else if (e.key === "ArrowRight" && snake.dx === 0) {
+        snake.dx = grid;
+        snake.dy = 0;
+      } else if (e.key === "ArrowDown" && snake.dy === 0) {
+        snake.dx = 0;
+        snake.dy = grid;
+      }
+    });
+
+    // Restart button handler
+    restartBtn.addEventListener("click", () => {
+      resetGame();
+    });
+
+  </script>
+</body>
+</html>
+
+
       <button type="button" class="btn" onclick="prevSlide()">⬅️ Back</button>
       <button type="button" class="btn" onclick="showResult()">🎉 Show Result</button>
     </form>
