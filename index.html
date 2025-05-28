@@ -98,6 +98,45 @@
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.05); }
     }
+
+    /* Styles for snake game slide */
+    #slide3 {
+      position: relative;
+      background: linear-gradient(to bottom right, #000000, #1a1a1a);
+      color: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 8px 16px rgba(0,255,0,0.5);
+      display: none;
+      text-align: center;
+    }
+    #question {
+      font-size: 1.6em;
+      margin-bottom: 15px;
+      color: #00ffcc;
+      text-shadow: 1px 1px 3px #000;
+    }
+    canvas {
+      border: 3px solid #00ff00;
+      box-shadow: 0 0 20px #00ff00;
+      margin-top: 15px;
+      border-radius: 10px;
+      background: black;
+    }
+    #restartBtn {
+      background: #00ff00;
+      border: none;
+      color: black;
+      font-weight: bold;
+      padding: 10px 20px;
+      margin-top: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1em;
+    }
+    #restartBtn:hover {
+      background: #00cc00;
+    }
   </style>
 </head>
 <body>
@@ -185,3 +224,223 @@
           <label><input type="radio" name="q11" value="wrong"> dog</label>
         </div>
       </div>
+
+      <button type="button" class="btn" onclick="prevSlide()">⬅️ Back</button>
+      <button type="button" class="btn" onclick="nextSlide()">➡️ Next</button>
+    </form>
+  </div>
+
+  <!-- Snake quiz game slide -->
+  <div id="slide3" class="quiz-container">
+    <h1>🐍 Snake Quiz Challenge 🐍</h1>
+    <div id="question"></div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <br>
+    <button id="restartBtn">Restart Game</button>
+    <br>
+    <button class="btn" onclick="prevSlide()">⬅️ Back to Quiz</button>
+  </div>
+
+  <script>
+    // Slide navigation
+    let currentSlide = 1;
+    function showSlide(n) {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById('slide' + i).classList.remove('active');
+      }
+      document.getElementById('slide' + n).classList.add('active');
+      currentSlide = n;
+    }
+    function nextSlide() {
+      if (currentSlide < 3) showSlide(currentSlide + 1);
+    }
+    function prevSlide() {
+      if (currentSlide > 1) showSlide(currentSlide - 1);
+    }
+
+    // Snake quiz game variables and setup
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const grid = 20;
+    let count = 0;
+
+    let snake = [{x: 160, y: 160}];
+    let dx = grid;
+    let dy = 0;
+
+    let food = {};
+    let foodType = ""; // correct or wrong
+
+    const questions = [
+      {
+        question: "What is the plural of 'mouse'?",
+        correctAnswer: "mice",
+        wrongAnswers: ["mouses", "mouseys", "meese"]
+      },
+      {
+        question: "Choose the verb:",
+        correctAnswer: "jump",
+        wrongAnswers: ["happy", "blue", "quickly"]
+      },
+      {
+        question: "Fill the blank: She ___ to school every day.",
+        correctAnswer: "goes",
+        wrongAnswers: ["going", "gone", "go"]
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function newFood() {
+      const q = questions[currentQuestionIndex];
+      const answers = shuffle([...q.wrongAnswers, q.correctAnswer]);
+
+      // Place food for the first answer only for now
+      let x = Math.floor(Math.random() * (canvas.width / grid)) * grid;
+      let y = Math.floor(Math.random() * (canvas.height / grid)) * grid;
+
+      food.x = x;
+      food.y = y;
+      food.answer = answers[0];
+      foodType = (food.answer === q.correctAnswer) ? "correct" : "wrong";
+    }
+
+    function drawSnake() {
+      ctx.fillStyle = "lime";
+      snake.forEach(segment => {
+        ctx.fillRect(segment.x, segment.y, grid - 2, grid - 2);
+        ctx.strokeStyle = "darkgreen";
+        ctx.strokeRect(segment.x, segment.y, grid - 2, grid - 2);
+      });
+    }
+
+    function drawFood() {
+      ctx.fillStyle = foodType === "correct" ? "yellow" : "red";
+      ctx.fillRect(food.x, food.y, grid - 2, grid - 2);
+      ctx.fillStyle = "black";
+      ctx.font = "12px Arial";
+      ctx.fillText(food.answer, food.x + 2, food.y + 14);
+    }
+
+    function resetGame() {
+      snake = [{x: 160, y: 160}];
+      dx = grid;
+      dy = 0;
+      currentQuestionIndex = 0;
+      score = 0;
+      showQuestion();
+      newFood();
+    }
+
+    function showQuestion() {
+      const qElem = document.getElementById("question");
+      qElem.textContent = questions[currentQuestionIndex].question + " (Score: " + score + ")";
+    }
+
+    function gameLoop() {
+      requestAnimationFrame(gameLoop);
+
+      if (++count < 10) return;
+      count = 0;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Move snake
+      let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+      // Wrap around
+      if (head.x >= canvas.width) head.x = 0;
+      if (head.x < 0) head.x = canvas.width - grid;
+      if (head.y >= canvas.height) head.y = 0;
+      if (head.y < 0) head.y = canvas.height - grid;
+
+      // Check self collision - game over
+      for (let segment of snake) {
+        if (head.x === segment.x && head.y === segment.y) {
+          alert("Game Over! Your final score: " + score);
+          resetGame();
+          return;
+        }
+      }
+
+      snake.unshift(head);
+
+      // Check if snake ate food
+      if (head.x === food.x && head.y === food.y) {
+        if (foodType === "correct") {
+          score++;
+          document.getElementById("successSound").play();
+          currentQuestionIndex++;
+          if (currentQuestionIndex >= questions.length) {
+            alert("You finished all questions! Final score: " + score);
+            resetGame();
+            return;
+          }
+          showQuestion();
+          newFood();
+        } else {
+          alert("Oops! Wrong answer. Game Over! Score: " + score);
+          resetGame();
+          return;
+        }
+      } else {
+        snake.pop();
+      }
+
+      drawSnake();
+      drawFood();
+    }
+
+    // Controls
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "ArrowLeft" && dx === 0) {
+        dx = -grid; dy = 0;
+      } else if (e.key === "ArrowUp" && dy === 0) {
+        dx = 0; dy = -grid;
+      } else if (e.key === "ArrowRight" && dx === 0) {
+        dx = grid; dy = 0;
+      } else if (e.key === "ArrowDown" && dy === 0) {
+        dx = 0; dy = grid;
+      }
+    });
+
+    document.getElementById("restartBtn").addEventListener("click", resetGame);
+
+    // Initialize first slide visible, snake game ready but hidden
+    showSlide(1);
+
+    // Only start the game loop when slide 3 is active
+    let gameRunning = false;
+    function runGameIfActive() {
+      if (currentSlide === 3 && !gameRunning) {
+        gameRunning = true;
+        gameLoop();
+      }
+    }
+
+    // Run the game loop when slide 3 is shown
+    // We'll override showSlide to run the game loop when needed
+    const oldShowSlide = showSlide;
+    showSlide = function(n) {
+      oldShowSlide(n);
+      if (n === 3) {
+        runGameIfActive();
+      } else {
+        gameRunning = false;
+      }
+    };
+
+  </script>
+
+</body>
+</html>
